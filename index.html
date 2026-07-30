@@ -186,6 +186,9 @@
   .out-card .copy svg { width: 13px; height: 13px; }
   .out-card .copy.copied { opacity: 1; color: var(--c-ok, #16a34a); border-color: var(--c-ok, #16a34a); }
 
+  /* 通用工具类 */
+  .hidden { display: none; }
+
   /* 错误提示 */
   .error-text {
     color: var(--danger);
@@ -528,11 +531,11 @@ function renderTsOutput(parsed) {
   const error = $('#tsError');
   container.innerHTML = '';
 
-  if (!parsed) {
-    error.classList.remove('hidden');
-    return;
-  }
-  error.classList.add('hidden');
+  // 仅当输入非空且无法识别时才提示；空输入或有效输入都隐藏
+  const raw = $('#tsInput').value.trim();
+  error.classList.toggle('hidden', !raw || !!parsed);
+
+  if (!parsed) return;
 
   const { date, ms } = parsed;
   container.appendChild(createOutCard('本地时间', formatDate(date, undefined), formatDate(date, undefined)));
