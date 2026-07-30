@@ -310,6 +310,35 @@
             <select id="dtZone">
               <option value="local">本地时间</option>
               <option value="UTC">UTC</option>
+              <optgroup label="亚洲">
+                <option value="Asia/Shanghai">中国标准时间（上海）</option>
+                <option value="Asia/Hong_Kong">香港</option>
+                <option value="Asia/Tokyo">日本（东京）</option>
+                <option value="Asia/Seoul">韩国（首尔）</option>
+                <option value="Asia/Singapore">新加坡</option>
+                <option value="Asia/Kolkata">印度（加尔各答）</option>
+                <option value="Asia/Dubai">阿联酋（迪拜）</option>
+              </optgroup>
+              <optgroup label="欧洲">
+                <option value="Europe/London">英国（伦敦）</option>
+                <option value="Europe/Paris">法国（巴黎）</option>
+                <option value="Europe/Berlin">德国（柏林）</option>
+                <option value="Europe/Moscow">俄罗斯（莫斯科）</option>
+              </optgroup>
+              <optgroup label="美洲">
+                <option value="America/New_York">美国东部（纽约）</option>
+                <option value="America/Chicago">美国中部（芝加哥）</option>
+                <option value="America/Denver">美国山地（丹佛）</option>
+                <option value="America/Los_Angeles">美国太平洋（洛杉矶）</option>
+                <option value="America/Toronto">加拿大（多伦多）</option>
+                <option value="America/Sao_Paulo">巴西（圣保罗）</option>
+              </optgroup>
+              <optgroup label="大洋洲与非洲">
+                <option value="Australia/Sydney">澳大利亚（悉尼）</option>
+                <option value="Pacific/Auckland">新西兰（奥克兰）</option>
+                <option value="Africa/Cairo">埃及（开罗）</option>
+                <option value="Africa/Johannesburg">南非（约翰内斯堡）</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -407,6 +436,27 @@ function formatDate(date, timeZone) {
   const parts = new Intl.DateTimeFormat('zh-CN', opts).formatToParts(date);
   const get = (type) => parts.find(p => p.type === type)?.value || '';
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+}
+
+function getTimeZoneOffset(ms, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date(ms));
+  const get = (type) => Number(parts.find(p => p.type === type)?.value || 0);
+  return Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')) - ms;
+}
+
+function zonedDateTimeToMs(value, timeZone) {
+  const [datePart, timePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second = 0] = timePart.split(':').map(Number);
+  const utcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+  let ms = utcMs - getTimeZoneOffset(utcMs, timeZone);
+  ms = utcMs - getTimeZoneOffset(ms, timeZone);
+  return ms;
 }
 
 /**
@@ -563,8 +613,10 @@ function renderDtOutput() {
   let ms;
   if (zone === 'UTC') {
     ms = new Date(value + 'Z').getTime();
-  } else {
+  } else if (zone === 'local') {
     ms = new Date(value).getTime();
+  } else {
+    ms = zonedDateTimeToMs(value, zone);
   }
   if (Number.isNaN(ms)) return;
 
